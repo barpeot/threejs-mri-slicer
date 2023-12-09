@@ -8,9 +8,9 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
 const orbit = new OrbitControls(camera, renderer.domElement);
-camera.position.set(81, 116, 27);
+camera.position.set(121, 126, 12);
 
 const rawcoord = [];
 const curves = [];
@@ -28,7 +28,6 @@ for (const positionArray of positionArrays) {
 console.log(rawcoord);
 
 for (const coords of rawcoord) {
-    array2 = [];
     for (let i = 0; i < coords.length - 2; i += 1) {
         const a = coords[i];
         const b = coords[i + 1];
@@ -56,103 +55,51 @@ orbit.update();
 const gui = new dat.GUI();
 const options = {};
 
-const visibilityControls = {
-    planeX: true,
-    planeY: true,
-    planeZ: true,
-};
-
-gui.add(visibilityControls, 'planeX').onChange(updatePlaneVisibility).name('Show Plane X');
-gui.add(visibilityControls, 'planeY').onChange(updatePlaneVisibility).name('Show Plane Y');
-gui.add(visibilityControls, 'planeZ').onChange(updatePlaneVisibility).name('Show Plane Z');
-
-function updatePlaneVisibility() {
-    planeX.visible = visibilityControls.planeX;
-    planeY.visible = visibilityControls.planeY;
-    planeZ.visible = visibilityControls.planeZ;
-}
-
-const planeGeometry = new THREE.PlaneGeometry(30, 30);
-const planeMaterial = new THREE.MeshBasicMaterial({
-    color: 0xFFFFFF,
-    side: THREE.DoubleSide,
-});
-
-const material = new THREE.LineBasicMaterial();
+const group = new THREE.Group();
 
 for (curve of curves) {
-    curve.arcLengthDivisions = 6;
-    const points = curve.getPoints(3);
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial();
+    const geometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints());
     const curveObject = new THREE.Line(geometry, material);
-    scene.add(curveObject);
+    group.add(curveObject);
 }
 
-const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-scene.add(plane);
+scene.add(group);
 
-const gridHelper = new THREE.GridHelper(30);
-scene.add(gridHelper);
+let planeXPosition = new THREE.Vector3(1, 0, 0);
+let planeYPosition = new THREE.Vector3(0, 1, 0);
+let planeZPosition = new THREE.Vector3(0, 0, 1);
 
-plane.rotation.x = -0.5 * Math.PI;
-
-let planeXPosition = new THREE.Vector3(80, 100, 0);
-let planeYPosition = new THREE.Vector3(80, 100, 0);
-let planeZPosition = new THREE.Vector3(80, 100, 0);
-
-
-// GUI controls for plane positions
 const guiControls = {
-    planeX: { position: 0 },
-    planeY: { position: 0 },
-    planeZ: { position: 0 }
+    planeX: { PlaneXpos: 0 },
+    planeY: { PlaneYpos: 0 },
+    planeZ: { PlaneZpos: 0 }
 };
 
-const planeX = createPlane(30, 30, 0xFF0000, new THREE.Vector3(80, 100, 0));
-const planeY = createPlane(30, 30, 0x00FF00, new THREE.Vector3(80, 100, 0));
-const planeZ = createPlane(30, 30, 0x0000FF, new THREE.Vector3(80, 100, 0));
+let planeX = new THREE.Plane(planeXPosition, 0);
+let planeY = new THREE.Plane(planeYPosition, 0);
+let planeZ = new THREE.Plane(planeZPosition, 0);
 
-scene.add(planeX);
-scene.add(planeY);
-scene.add(planeZ);
+var PlaneHelperX = new THREE.PlaneHelper(planeX, 300, 0xff0000);
+var PlaneHelperY = new THREE.PlaneHelper(planeY, 300, 0x00ff00);
+var PlaneHelperZ = new THREE.PlaneHelper(planeZ, 300, 0x0000ff);
+scene.add(PlaneHelperX);
+scene.add(PlaneHelperY);
+scene.add(PlaneHelperZ);
 
-function createPlane(width, height, color, initialPosition) {
-    const geometry = new THREE.PlaneGeometry(width, height);
-    const material = new THREE.MeshBasicMaterial({
-        color,
-        side: THREE.DoubleSide,
-        clippingPlanes: [new THREE.Plane(new THREE.Vector3(1, 0, 0), 0)],  // Set the clipping plane
-        clipShadows: true,  // Enable clipping
-    });
-    const plane = new THREE.Mesh(geometry, material);
-    plane.position.copy(initialPosition);
-    return plane;
-}
-
-function updateClippingPlanes() {
-    planeX.material.clippingPlanes[0].constant = guiControls.planeX.position;
-    planeY.material.clippingPlanes[0].constant = guiControls.planeY.position;
-    planeZ.material.clippingPlanes[0].constant = guiControls.planeZ.position;
-}
+const planeFolder = gui.addFolder('Plane Positions');
+planeFolder.add(guiControls.planeX, 'PlaneXpos', -150, 150).onChange(updatePlanePositions);
+planeFolder.add(guiControls.planeY, 'PlaneYpos', -150, 150).onChange(updatePlanePositions);
+planeFolder.add(guiControls.planeZ, 'PlaneZpos', -150, 150).onChange(updatePlanePositions);
 
 function updatePlanePositions() {
-    planeXPosition.set(guiControls.planeX.position + 95, 100, 0);
-    planeYPosition.set(80, guiControls.planeY.position + 115, 0);
-    planeZPosition.set(80, 100, guiControls.planeZ.position + 15);
+    planeX.constant = guiControls.planeX.PlaneXpos;
+    planeY.constant = guiControls.planeY.PlaneYpos;
+    planeZ.constant = guiControls.planeZ.PlaneZpos;
 
-    planeX.position.copy(planeXPosition);
-    planeY.position.copy(planeYPosition);
-    planeZ.position.copy(planeZPosition);
-
-    // Update plane rotations based on movement direction
-    planeX.rotation.set(0, Math.PI / 2, 0);
-    planeY.rotation.set(-Math.PI / 2, 0, 0);
-    planeZ.rotation.set(0, 0, 0);
 }
 
-gui.add(guiControls.planeX, 'position').min(-100).max(100).step(0.1).onChange(updatePlanePositions).name('planeX');
-gui.add(guiControls.planeY, 'position').min(-100).max(100).step(0.1).onChange(updatePlanePositions).name('planeY');
-gui.add(guiControls.planeZ, 'position').min(-100).max(100).step(0.1).onChange(updatePlanePositions).name('planeZ');
+camera.lookAt(group.position);
 
 function updateCameraPosition() {
     camera.position.set(
@@ -167,10 +114,11 @@ gui.add(cameraPositionGUI, 'positionX').onChange(updateCameraPosition);
 gui.add(cameraPositionGUI, 'positionY').onChange(updateCameraPosition);
 gui.add(cameraPositionGUI, 'positionZ').onChange(updateCameraPosition);
 
+renderer.clippingPlanes = [planeX, planeY, planeZ];
+renderer.localClippingEnabled = true;
+
 function animate() {
     updatePlanePositions();
-    updatePlaneVisibility();
-    updateClippingPlanes();
     gui.updateDisplay();
     renderer.render(scene, camera);
 }
