@@ -14,6 +14,8 @@ camera.position.set(121, 126, 12);
 
 const rawcoord = [];
 const curves = [];
+const lines = [];
+var intersections = [];
 
 const positionArrays = data.result;
 
@@ -25,8 +27,6 @@ for (const positionArray of positionArrays) {
     rawcoord.push(array);
 }
 
-console.log(rawcoord);
-
 for (const coords of rawcoord) {
     for (let i = 0; i < coords.length - 2; i += 1) {
         const a = coords[i];
@@ -36,8 +36,6 @@ for (const coords of rawcoord) {
         curves.push(new THREE.QuadraticBezierCurve3(a, b, c));
     }
 }
-
-console.log(curves);
 
 const cameraPositionGUI = {
     positionX: camera.position.x,
@@ -60,8 +58,10 @@ const group = new THREE.Group();
 for (curve of curves) {
     const material = new THREE.LineBasicMaterial();
     const geometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints());
-    const curveObject = new THREE.Line(geometry, material);
+    const curveObject = new THREE.LineLoop(geometry, material);
     group.add(curveObject);
+
+    lines.push(curve.getPoints());
 }
 
 scene.add(group);
@@ -69,6 +69,8 @@ scene.add(group);
 let planeXPosition = new THREE.Vector3(1, 0, 0);
 let planeYPosition = new THREE.Vector3(0, 1, 0);
 let planeZPosition = new THREE.Vector3(0, 0, 1);
+
+var geometry = new THREE.BufferGeometry();
 
 const guiControls = {
     planeX: { PlaneXpos: 0 },
@@ -88,15 +90,108 @@ scene.add(PlaneHelperY);
 scene.add(PlaneHelperZ);
 
 const planeFolder = gui.addFolder('Plane Positions');
-planeFolder.add(guiControls.planeX, 'PlaneXpos', -150, 150).onChange(updatePlanePositions);
-planeFolder.add(guiControls.planeY, 'PlaneYpos', -150, 150).onChange(updatePlanePositions);
-planeFolder.add(guiControls.planeZ, 'PlaneZpos', -150, 150).onChange(updatePlanePositions);
+planeFolder.add(guiControls.planeX, 'PlaneXpos', -150, 150).onChange(updatePlanePositionX);
+planeFolder.add(guiControls.planeY, 'PlaneYpos', -150, 150).onChange(updatePlanePositionY);
+planeFolder.add(guiControls.planeZ, 'PlaneZpos', -150, 150).onChange(updatePlanePositionZ);
 
-function updatePlanePositions() {
+function closesttoPlane(line, plane) {
+    const distance = plane.distanceToPoint(line);
+    return distance < 0.1;
+}
+
+function makePoints(vec3){
+    geometry.setFromPoints(vec3);
+    var material = new THREE.PointsMaterial({ color: 0xff0000, size: 1, side: THREE.DoubleSide });
+    var points = new THREE.Points(geometry, material);
+    scene.add(points);
+}
+
+function updatePlanePositionX() {
+    intersections = [];
     planeX.constant = guiControls.planeX.PlaneXpos;
+
+    const filteredX = lines.filter(line => closesttoPlane(line[0], planeX));
+
+    for(curve of filteredX){
+        const bezierline3 = [];
+        bezierline3.push(
+            new THREE.Line3(curve[0], curve[1]), 
+            new THREE.Line3(curve[1], curve[2]), 
+            new THREE.Line3(curve[2], curve[3]), 
+            new THREE.Line3(curve[3], curve[4]), 
+            new THREE.Line3(curve[4], curve[5])
+        );
+
+        for(bezier of bezierline3){
+            let intersect = new THREE.Vector3();
+            if(!planeX.intersectsLine(bezier)) continue;
+            planeX.intersectLine(bezier, intersect);
+
+            intersections.push(intersect);
+        }
+        
+        makePoints(intersections);
+
+    }
+}
+
+function updatePlanePositionY() {
+    intersections = [];
     planeY.constant = guiControls.planeY.PlaneYpos;
+
+    const filteredY = lines.filter(line => closesttoPlane(line[0], planeY));
+
+    for(curve of filteredY){
+        const bezierline3 = [];
+        bezierline3.push(
+            new THREE.Line3(curve[0], curve[1]), 
+            new THREE.Line3(curve[1], curve[2]), 
+            new THREE.Line3(curve[2], curve[3]), 
+            new THREE.Line3(curve[3], curve[4]), 
+            new THREE.Line3(curve[4], curve[5])
+        );
+
+        for(bezier of bezierline3){
+            let intersect = new THREE.Vector3();
+
+            if(!planeY.intersectsLine(bezier)) continue;
+            planeY.intersectLine(bezier, intersect);
+
+            intersections.push(intersect);
+        }
+
+        makePoints(intersections);
+    }
+}
+
+function updatePlanePositionZ() {
+    intersections = [];
     planeZ.constant = guiControls.planeZ.PlaneZpos;
 
+    const filteredZ = lines.filter(line => closesttoPlane(line[0], planeZ));
+
+    for(curve of filteredZ){
+        const bezierline3 = [];
+        bezierline3.push(
+            new THREE.Line3(curve[0], curve[1]), 
+            new THREE.Line3(curve[1], curve[2]), 
+            new THREE.Line3(curve[2], curve[3]), 
+            new THREE.Line3(curve[3], curve[4]), 
+            new THREE.Line3(curve[4], curve[5])
+        );
+
+        for(bezier of bezierline3){
+            let intersect = new THREE.Vector3();
+
+            if(!planeZ.intersectsLine(bezier)) continue;
+            planeZ.intersectLine(bezier, intersect);
+
+            intersections.push(intersect);
+        }
+
+        makePoints(intersections);
+
+    }
 }
 
 camera.lookAt(group.position);
@@ -114,11 +209,10 @@ gui.add(cameraPositionGUI, 'positionX').onChange(updateCameraPosition);
 gui.add(cameraPositionGUI, 'positionY').onChange(updateCameraPosition);
 gui.add(cameraPositionGUI, 'positionZ').onChange(updateCameraPosition);
 
-renderer.clippingPlanes = [planeX, planeY, planeZ];
+// renderer.clippingPlanes = [planeX, planeY, planeZ];
 renderer.localClippingEnabled = true;
 
 function animate() {
-    updatePlanePositions();
     gui.updateDisplay();
     renderer.render(scene, camera);
 }
