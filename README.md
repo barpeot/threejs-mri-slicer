@@ -1,4 +1,6 @@
-# Final Project Rekayasa Sistem Berbasis Pengetahuan (RSBP) D 2023
+# Tractography model Slicing using three.js
+
+Final Project Rekayasa Sistem Berbasis Pengetahuan (RSBP) D Institut Teknologi Sepuluh Nopember (ITS) Tahun Ajaran 2023/2024
 
 ## Anggota Kelompok:
 
