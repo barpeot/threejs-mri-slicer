@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import * as dat from 'dat.gui';
-import data from '../data/streamlineResult3.json';
+import data from '../data/streamlineResult2.json';
 
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -15,8 +15,10 @@ camera.position.set(121, 126, 12);
 const rawcoord = [];
 const curves = [];
 const lines = [];
-var intersections = [];
-var points = new THREE.Points();
+
+var pointsX = new THREE.Points();
+var pointsY = new THREE.Points();
+var pointsZ = new THREE.Points();
 
 const positionArrays = data.result;
 
@@ -57,6 +59,10 @@ const options = {};
 const group = new THREE.Group();
 
 var geometry = new THREE.BufferGeometry();
+var geometryX = new THREE.BufferGeometry();
+var geometryY = new THREE.BufferGeometry();
+var geometryZ = new THREE.BufferGeometry();
+
 var material = new THREE.PointsMaterial();
 
 for (curve of curves) {
@@ -93,9 +99,9 @@ scene.add(PlaneHelperY);
 scene.add(PlaneHelperZ);
 
 const planeFolder = gui.addFolder('Plane Controls');
-planeFolder.add(guiControls.planeX, 'PlaneXpos', -150, 150).onChange(updatePlanePositionX);
-planeFolder.add(guiControls.planeY, 'PlaneYpos', -150, 150).onChange(updatePlanePositionY);
-planeFolder.add(guiControls.planeZ, 'PlaneZpos', -150, 150).onChange(updatePlanePositionZ);
+planeFolder.add(guiControls.planeX, 'PlaneXpos', -150, 150, 0.1).onChange(updatePlanePositionX);
+planeFolder.add(guiControls.planeY, 'PlaneYpos', -150, 150, 0.1).onChange(updatePlanePositionY);
+planeFolder.add(guiControls.planeZ, 'PlaneZpos', -150, 150, 0.1).onChange(updatePlanePositionZ);
 planeFolder.add(guiControls.planeX, 'clipping').name('Toggle clipping X').onChange(updateClippingPlanes);
 planeFolder.add(guiControls.planeY, 'clipping').name('Toggle clipping Y').onChange(updateClippingPlanes);
 planeFolder.add(guiControls.planeZ, 'clipping').name('Toggle clipping Z').onChange(updateClippingPlanes);
@@ -121,15 +127,6 @@ function closesttoPlane(line, plane) {
     return distance < 0.1;
 }
 
-function makePoints(vec3, material){
-    points.geometry.dispose();
-    points.material.dispose();
-    scene.remove(points);
-    geometry.setFromPoints(vec3);
-    points = new THREE.Points(geometry, material);
-    scene.add(points);
-}
-
 function updatePlanePositionX() {
     intersections = [];
     planeX.constant = guiControls.planeX.PlaneXpos;
@@ -140,7 +137,9 @@ function updatePlanePositionX() {
         const bezierline3 = [];
         bezierline3.push(
             new THREE.Line3(curve[0], curve[1]), 
+            new THREE.Line3(curve[1], curve[2]), 
             new THREE.Line3(curve[2], curve[3]), 
+            new THREE.Line3(curve[3], curve[4]), 
             new THREE.Line3(curve[4], curve[5])
         );
 
@@ -152,13 +151,18 @@ function updatePlanePositionX() {
             intersections.push(intersect);
         }
 
-        material = new THREE.PointsMaterial({ color: 0xff0000, size: 1, side: THREE.DoubleSide, transparent: true });
-        
-        makePoints(intersections, material);
-
     }
 
-    console.log(intersections);
+    material = new THREE.PointsMaterial({ color: 0xff0000, size: 1, side: THREE.DoubleSide, transparent: true });
+        
+    pointsX.geometry.dispose();
+    pointsX.material.dispose();
+    scene.remove(pointsX);
+    geometryX.setFromPoints(intersections);
+    pointsX = new THREE.Points(geometryX, material);
+    scene.add(pointsX);
+
+    console.log("X intersections: ", intersections);
 
 }
 
@@ -187,12 +191,18 @@ function updatePlanePositionY() {
             intersections.push(intersect);
         }
 
-        material = new THREE.PointsMaterial({ color: 0x00ff00, size: 1, side: THREE.DoubleSide, transparent: true });
-
-        makePoints(intersections, material);
     }
 
-    console.log(intersections);
+    material = new THREE.PointsMaterial({ color: 0x00ff00, size: 1, side: THREE.DoubleSide, transparent: true });
+
+    pointsY.geometry.dispose();
+    pointsY.material.dispose();
+    scene.remove(pointsY);
+    geometryY.setFromPoints(intersections);
+    pointsY = new THREE.Points(geometryY, material);
+    scene.add(pointsY);
+
+    console.log("Y Intersections: ", intersections);
 
 }
 
@@ -219,16 +229,19 @@ function updatePlanePositionZ() {
             planeZ.intersectLine(bezier, intersect);
 
             intersections.push(intersect);
-        }
-
-        material = new THREE.PointsMaterial({ color: 0x0000ff, size: 1, side: THREE.DoubleSide, transparent: true });
-
-        makePoints(intersections, material);
-        
-
+        }     
     }
 
-    console.log(intersections);
+    material = new THREE.PointsMaterial({ color: 0x0000ff, size: 1, side: THREE.DoubleSide, transparent: true });
+
+    pointsZ.geometry.dispose();
+    pointsZ.material.dispose();
+    scene.remove(pointsZ);
+    geometryZ.setFromPoints(intersections);
+    pointsZ = new THREE.Points(geometryZ, material);
+    scene.add(pointsZ);   
+
+    console.log("Z Intersections: ", intersections);
 }
 
 
